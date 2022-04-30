@@ -1,18 +1,32 @@
+use std::iter::Iterator;
+
 const EARTHS_RADIUS_MILES: f64 = 3960.0;
 const EARTHS_RADIUS_KILOMETERS: f64 = 6371.0;
 
-#[derive(Clone)]
+#[derive(Copy, Clone)]
 pub struct Point {
     latitude: f64,
     longitude: f64,
 }
 
-impl Point {
-    pub fn distance(&self, b: Point, unit: Unit) -> f64 {
-        distance(self.clone(), b, unit)
+impl<'a> Point {
+    pub fn distance(&self, b: &Point, unit: Unit) -> f64 {
+        distance(self, b, unit)
+    }
+
+    pub fn distances<T: 'a>(&'a self, points: T, unit: Unit) -> impl Iterator<Item = (Point, f64)> + 'a
+        where
+            T: Iterator<Item = Point>,
+    {
+        points.map(move |b| {
+            let dist = self.distance(&b, unit);
+
+            (b, dist)
+        })
     }
 }
 
+#[derive(Copy, Clone)]
 pub enum Unit {
     Miles,
     Kilometers,
@@ -30,7 +44,7 @@ impl Unit {
     }
 }
 
-pub fn distance(a: Point, b: Point, unit: Unit) -> f64 {
+pub fn distance(a: &Point, b: &Point, unit: Unit) -> f64 {
     let lat_a: f64 = (a.latitude).to_radians();
     let lat_b: f64 = (b.latitude).to_radians();
 
@@ -49,8 +63,8 @@ mod tests {
 
     #[test]
     fn test_miles() {
-        let a = Point { latitude: 33.456789, longitude: -117.034576 };
-        let b = Point { latitude: 32.652387, longitude: -114.098743 };
+        let a = &Point { latitude: 33.456789, longitude: -117.034576 };
+        let b = &Point { latitude: 32.652387, longitude: -114.098743 };
 
         let dist = distance(a, b, Unit::Miles);
 
@@ -59,8 +73,8 @@ mod tests {
 
     #[test]
     fn test_zero() {
-        let a = Point { latitude: 33.456789, longitude: -117.034576 };
-        let b = Point { latitude: 33.456789, longitude: -117.034576 };
+        let a = &Point { latitude: 33.456789, longitude: -117.034576 };
+        let b = &Point { latitude: 33.456789, longitude: -117.034576 };
 
         let dist = distance(a, b, Unit::Miles);
 
@@ -69,8 +83,8 @@ mod tests {
 
     #[test]
     fn test_kilometers() {
-        let a = Point { latitude: 33.456789, longitude: -117.034576 };
-        let b = Point { latitude: 32.652387, longitude: -114.098743 };
+        let a = &Point { latitude: 33.456789, longitude: -117.034576 };
+        let b = &Point { latitude: 32.652387, longitude: -114.098743 };
 
         let dist = distance(a, b, Unit::Kilometers);
 
